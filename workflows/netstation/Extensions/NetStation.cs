@@ -15,20 +15,45 @@ public class NetStation : IDisposable
         client.NoDelay = true;
     }
 
-    private async Task WriteBytes(string command)
+    private async Task WriteBytesAsync(string value)
     {
         if (stream == null)
         {
             throw new InvalidOperationException("Client connection is not open.");
         }
 
+        
         using (var memoryStream = new MemoryStream())
         using (var writer = new StreamWriter(memoryStream))
         {
-            writer.Write(command);
+            writer.Write(value);
             var buffer = memoryStream.ToArray();
             await stream.WriteAsync(buffer, 0, buffer.Length);
         }
+    }
+
+    private async Task WriteBytesAsync(int value)
+    {
+        var buffer = BitConverter.GetBytes(value);
+        await stream.WriteAsync(buffer, 0, buffer.Length);
+    }
+
+    private async Task WriteBytesAsync(ushort value)
+    {
+        var buffer = BitConverter.GetBytes(value);
+        await stream.WriteAsync(buffer, 0, buffer.Length);
+    }
+
+    private async Task WriteBytesAsync(uint value)
+    {
+        var buffer = BitConverter.GetBytes(value);
+        await stream.WriteAsync(buffer, 0, buffer.Length);
+    }
+
+    private async Task WriteBytesAsync(byte value)
+    {
+        var buffer = new byte[] { value };
+        await stream.WriteAsync(buffer, 0, buffer.Length);
     }
 
     private async Task<byte> ReadByteAsync()
@@ -48,7 +73,7 @@ public class NetStation : IDisposable
         await client.ConnectAsync(host, port);
         stream = client.GetStream();
 
-        await WriteBytes("QMAC-");
+        await WriteBytesAsync("QMAC-");
         var response = await ReadByteAsync();
         switch (response)
         {
@@ -66,9 +91,29 @@ public class NetStation : IDisposable
         }
     }
 
+    public async Task StartRecordingAsync()
+    {
+        await WriteBytesAsync("B");
+        var response = await ReadByteAsync();
+    }
+
+    public async Task StopRecordingAsync()
+    {
+        await WriteBytesAsync("E");
+        var response = await ReadByteAsync();
+    }
+
+    public async Task EventAsync()
+    {
+        await WriteBytesAsync("D");
+        await WriteBytesAsync((ushort)15);
+        await WriteBytesAsync((ushort)15);
+        var response = await ReadByteAsync();
+    }
+
     public async Task DisconnectAsync()
     {
-        await WriteBytes("X");
+        await WriteBytesAsync("X");
         var response = await ReadByteAsync();
     }
 
