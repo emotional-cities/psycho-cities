@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<WorkflowBuilder Version="2.6.2"
+<WorkflowBuilder Version="2.6.3"
                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                  xmlns:io="clr-namespace:Bonsai.IO;assembly=Bonsai.System"
                  xmlns:scr="clr-namespace:Bonsai.Scripting;assembly=Bonsai.Scripting"
@@ -9,7 +9,6 @@
                  xmlns:res="clr-namespace:Bonsai.Resources;assembly=Bonsai.System"
                  xmlns:cv="clr-namespace:Bonsai.Vision;assembly=Bonsai.Vision"
                  xmlns:gli="clr-namespace:Bonsai.Shaders.Input;assembly=Bonsai.Shaders"
-                 xmlns:bv="clr-namespace:BonVision;assembly=BonVision"
                  xmlns="https://bonsai-rx.org/2018/workflow">
   <Workflow>
     <Nodes>
@@ -27,8 +26,8 @@
               <scr:Expression>new (
 TimeSpan.FromSeconds(it.Item1) as FixationDuration, 
 TimeSpan.FromSeconds(it.Item2) as ImageDuration, 
-TimeSpan.FromSeconds(it.Item3) as FirstResponseDuration, 
-TimeSpan.FromSeconds(it.Item4) as SecondResponseDuration, 
+TimeSpan.FromSeconds(it.Item3) as Delay, 
+TimeSpan.FromSeconds(it.Item4) as MaxReactionTime, 
 TimeSpan.FromSeconds(it.Item5) as ITIDuration,
 it.Item6 -1 as ImageIndex)</scr:Expression>
             </Expression>
@@ -51,16 +50,16 @@ it.Item6 -1 as ImageIndex)</scr:Expression>
               <Name>ImageDuration</Name>
             </Expression>
             <Expression xsi:type="MemberSelector">
-              <Selector>Item1.FirstResponseDuration</Selector>
+              <Selector>Item1.Delay</Selector>
             </Expression>
             <Expression xsi:type="BehaviorSubject">
-              <Name>FirstResponseDuration</Name>
+              <Name>Delay</Name>
             </Expression>
             <Expression xsi:type="MemberSelector">
-              <Selector>Item1.SecondResponseDuration</Selector>
+              <Selector>Item1.MaxReactionTime</Selector>
             </Expression>
             <Expression xsi:type="BehaviorSubject">
-              <Name>SecondResponseDuration</Name>
+              <Name>MaxReactionTime</Name>
             </Expression>
             <Expression xsi:type="MemberSelector">
               <Selector>Item1.ITIDuration</Selector>
@@ -419,7 +418,7 @@ Convert.ToDouble(it.Height) / Convert.ToDouble(it.Width) as aspectRatio
                         </Expression>
                         <Expression xsi:type="Combinator">
                           <Combinator xsi:type="FloatProperty">
-                            <Value>-0.5</Value>
+                            <Value>0.6</Value>
                           </Combinator>
                         </Expression>
                         <Expression xsi:type="ExternalizedMapping">
@@ -427,7 +426,7 @@ Convert.ToDouble(it.Height) / Convert.ToDouble(it.Width) as aspectRatio
                         </Expression>
                         <Expression xsi:type="Combinator">
                           <Combinator xsi:type="FloatProperty">
-                            <Value>0.25</Value>
+                            <Value>0.2</Value>
                           </Combinator>
                         </Expression>
                         <Expression xsi:type="ExternalizedMapping">
@@ -435,7 +434,7 @@ Convert.ToDouble(it.Height) / Convert.ToDouble(it.Width) as aspectRatio
                         </Expression>
                         <Expression xsi:type="Combinator">
                           <Combinator xsi:type="FloatProperty">
-                            <Value>0.25</Value>
+                            <Value>0.2</Value>
                           </Combinator>
                         </Expression>
                         <Expression xsi:type="Combinator">
@@ -557,15 +556,44 @@ Convert.ToDouble(it.Height) / Convert.ToDouble(it.Width) as aspectRatio
                   </Expression>
                   <Expression xsi:type="Combinator">
                     <Combinator xsi:type="gl:Timer">
-                      <gl:DueTime>PT0S</gl:DueTime>
+                      <gl:DueTime>PT1S</gl:DueTime>
                     </Combinator>
                   </Expression>
                   <Expression xsi:type="WorkflowOutput" />
+                  <Expression xsi:type="SubscribeSubject">
+                    <Name>Draw</Name>
+                  </Expression>
+                  <Expression xsi:type="IncludeWorkflow" Path="BonVision:Primitives.DrawQuad.bonsai">
+                    <ExtentX>0.01</ExtentX>
+                    <ExtentY>0.2</ExtentY>
+                    <LocationX>0</LocationX>
+                    <LocationY>0</LocationY>
+                    <Layer>0</Layer>
+                    <Angle>90</Angle>
+                    <ColorR>1</ColorR>
+                    <ColorG>1</ColorG>
+                    <ColorB>1</ColorB>
+                    <ColorA>1</ColorA>
+                  </Expression>
+                  <Expression xsi:type="IncludeWorkflow" Path="BonVision:Primitives.DrawQuad.bonsai">
+                    <ExtentX>0.01</ExtentX>
+                    <ExtentY>0.2</ExtentY>
+                    <LocationX>0</LocationX>
+                    <LocationY>0</LocationY>
+                    <Layer>0</Layer>
+                    <Angle>0</Angle>
+                    <ColorR>1</ColorR>
+                    <ColorG>1</ColorG>
+                    <ColorB>1</ColorB>
+                    <ColorA>1</ColorA>
+                  </Expression>
                 </Nodes>
                 <Edges>
                   <Edge From="0" To="1" Label="Source1" />
                   <Edge From="1" To="2" Label="Source1" />
                   <Edge From="2" To="3" Label="Source1" />
+                  <Edge From="4" To="5" Label="Source1" />
+                  <Edge From="4" To="6" Label="Source1" />
                 </Edges>
               </Workflow>
             </Expression>
@@ -576,223 +604,9 @@ Convert.ToDouble(it.Height) / Convert.ToDouble(it.Width) as aspectRatio
                   <Expression xsi:type="SubscribeSubject">
                     <Name>Draw</Name>
                   </Expression>
-                  <Expression xsi:type="GroupWorkflow">
-                    <Name>ScaleImage</Name>
-                    <Workflow>
-                      <Nodes>
-                        <Expression xsi:type="WorkflowInput">
-                          <Name>Source1</Name>
-                        </Expression>
-                        <Expression xsi:type="GroupWorkflow">
-                          <Name>Transform</Name>
-                          <Workflow>
-                            <Nodes>
-                              <Expression xsi:type="WorkflowInput">
-                                <Name>Source1</Name>
-                              </Expression>
-                              <Expression xsi:type="ExternalizedMapping">
-                                <Property Name="X" DisplayName="LocationX" />
-                                <Property Name="Y" DisplayName="LocationY" />
-                                <Property Name="Z" DisplayName="Layer" Description="The optional drawing overlay priority. Lower numbers appear below higher numbers." />
-                              </Expression>
-                              <Expression xsi:type="Combinator">
-                                <Combinator xsi:type="gl:Translate">
-                                  <gl:Order>Prepend</gl:Order>
-                                  <gl:X>0</gl:X>
-                                  <gl:Y>0</gl:Y>
-                                  <gl:Z>0</gl:Z>
-                                </Combinator>
-                              </Expression>
-                              <Expression xsi:type="ExternalizedMapping">
-                                <Property Name="Angle" />
-                              </Expression>
-                              <Expression xsi:type="Combinator">
-                                <Combinator xsi:type="gl:RotateZ">
-                                  <gl:Order>Prepend</gl:Order>
-                                  <gl:Angle>0</gl:Angle>
-                                </Combinator>
-                              </Expression>
-                              <Expression xsi:type="SubscribeSubject">
-                                <Name>AspectRatio</Name>
-                              </Expression>
-                              <Expression xsi:type="Combinator">
-                                <Combinator xsi:type="rx:WithLatestFrom" />
-                              </Expression>
-                              <Expression xsi:type="MemberSelector">
-                                <Selector>Item2</Selector>
-                              </Expression>
-                              <Expression xsi:type="PropertyMapping">
-                                <PropertyMappings>
-                                  <Property Name="Y" />
-                                </PropertyMappings>
-                              </Expression>
-                              <Expression xsi:type="ExternalizedMapping">
-                                <Property Name="X" />
-                              </Expression>
-                              <Expression xsi:type="Combinator">
-                                <Combinator xsi:type="gl:Scale">
-                                  <gl:Order>Prepend</gl:Order>
-                                  <gl:X>1</gl:X>
-                                  <gl:Y>0.154135332</gl:Y>
-                                  <gl:Z>1</gl:Z>
-                                </Combinator>
-                              </Expression>
-                              <Expression xsi:type="Combinator">
-                                <Combinator xsi:type="gl:UpdateUniform">
-                                  <gl:UniformName>transform</gl:UniformName>
-                                  <gl:ShaderName>Image</gl:ShaderName>
-                                </Combinator>
-                              </Expression>
-                              <Expression xsi:type="WorkflowOutput" />
-                            </Nodes>
-                            <Edges>
-                              <Edge From="0" To="2" Label="Source1" />
-                              <Edge From="0" To="6" Label="Source1" />
-                              <Edge From="1" To="2" Label="Source2" />
-                              <Edge From="2" To="4" Label="Source1" />
-                              <Edge From="3" To="4" Label="Source2" />
-                              <Edge From="4" To="10" Label="Source1" />
-                              <Edge From="5" To="6" Label="Source2" />
-                              <Edge From="6" To="7" Label="Source1" />
-                              <Edge From="7" To="8" Label="Source1" />
-                              <Edge From="8" To="10" Label="Source2" />
-                              <Edge From="9" To="10" Label="Source3" />
-                              <Edge From="10" To="11" Label="Source1" />
-                              <Edge From="11" To="12" Label="Source1" />
-                            </Edges>
-                          </Workflow>
-                        </Expression>
-                        <Expression xsi:type="GroupWorkflow">
-                          <Name>ScaleShift</Name>
-                          <Workflow>
-                            <Nodes>
-                              <Expression xsi:type="WorkflowInput">
-                                <Name>Source1</Name>
-                              </Expression>
-                              <Expression xsi:type="ExternalizedMapping">
-                                <Property Name="X" DisplayName="ShiftX" Category="Texture Mapping" />
-                                <Property Name="Y" DisplayName="ShiftY" Category="Texture Mapping" />
-                              </Expression>
-                              <Expression xsi:type="ExternalizedMapping">
-                                <Property Name="X" />
-                                <Property Name="Y" />
-                              </Expression>
-                              <Expression xsi:type="Combinator">
-                                <Combinator xsi:type="bv:CreateTextureScale">
-                                  <bv:X>1</bv:X>
-                                  <bv:Y>1</bv:Y>
-                                </Combinator>
-                              </Expression>
-                              <Expression xsi:type="Combinator">
-                                <Combinator xsi:type="gl:UpdateUniform">
-                                  <gl:UniformName>scale</gl:UniformName>
-                                  <gl:ShaderName>Image</gl:ShaderName>
-                                </Combinator>
-                              </Expression>
-                              <Expression xsi:type="Combinator">
-                                <Combinator xsi:type="bv:CreateTextureShift">
-                                  <bv:X>0</bv:X>
-                                  <bv:Y>0</bv:Y>
-                                </Combinator>
-                              </Expression>
-                              <Expression xsi:type="Combinator">
-                                <Combinator xsi:type="gl:UpdateUniform">
-                                  <gl:UniformName>shift</gl:UniformName>
-                                  <gl:ShaderName>Image</gl:ShaderName>
-                                </Combinator>
-                              </Expression>
-                              <Expression xsi:type="WorkflowOutput" />
-                            </Nodes>
-                            <Edges>
-                              <Edge From="0" To="3" Label="Source1" />
-                              <Edge From="1" To="5" Label="Source2" />
-                              <Edge From="2" To="3" Label="Source2" />
-                              <Edge From="3" To="4" Label="Source1" />
-                              <Edge From="4" To="5" Label="Source1" />
-                              <Edge From="5" To="6" Label="Source1" />
-                              <Edge From="6" To="7" Label="Source1" />
-                            </Edges>
-                          </Workflow>
-                        </Expression>
-                        <Expression xsi:type="WorkflowOutput" />
-                      </Nodes>
-                      <Edges>
-                        <Edge From="0" To="1" Label="Source1" />
-                        <Edge From="1" To="2" Label="Source1" />
-                        <Edge From="2" To="3" Label="Source1" />
-                      </Edges>
-                    </Workflow>
-                  </Expression>
-                  <Expression xsi:type="Combinator">
-                    <Combinator xsi:type="gl:DrawMesh">
-                      <gl:ShaderName>Image</gl:ShaderName>
-                      <gl:MeshName>Quad</gl:MeshName>
-                    </Combinator>
-                  </Expression>
-                  <Expression xsi:type="GroupWorkflow">
-                    <Name>SelectImage</Name>
-                    <Workflow>
-                      <Nodes>
-                        <Expression xsi:type="SubscribeSubject">
-                          <Name>ImageResources</Name>
-                        </Expression>
-                        <Expression xsi:type="SubscribeSubject">
-                          <Name>TrialImageIndex</Name>
-                        </Expression>
-                        <Expression xsi:type="Combinator">
-                          <Combinator xsi:type="rx:WithLatestFrom" />
-                        </Expression>
-                        <Expression xsi:type="MemberSelector">
-                          <Selector>Item1</Selector>
-                        </Expression>
-                        <Expression xsi:type="MemberSelector">
-                          <Selector>Item2</Selector>
-                        </Expression>
-                        <Expression xsi:type="PropertyMapping">
-                          <PropertyMappings>
-                            <Property Name="Value" />
-                          </PropertyMappings>
-                        </Expression>
-                        <Expression xsi:type="Index">
-                          <Operand xsi:type="IntProperty">
-                            <Value>1</Value>
-                          </Operand>
-                        </Expression>
-                        <Expression xsi:type="MemberSelector">
-                          <Selector>Item2</Selector>
-                        </Expression>
-                        <Expression xsi:type="WorkflowOutput" />
-                        <Expression xsi:type="MemberSelector">
-                          <Selector>Item1.aspectRatio</Selector>
-                        </Expression>
-                        <Expression xsi:type="BehaviorSubject">
-                          <Name>AspectRatio</Name>
-                        </Expression>
-                      </Nodes>
-                      <Edges>
-                        <Edge From="0" To="2" Label="Source1" />
-                        <Edge From="1" To="2" Label="Source2" />
-                        <Edge From="2" To="3" Label="Source1" />
-                        <Edge From="2" To="4" Label="Source1" />
-                        <Edge From="3" To="6" Label="Source1" />
-                        <Edge From="4" To="5" Label="Source1" />
-                        <Edge From="5" To="6" Label="Source2" />
-                        <Edge From="6" To="7" Label="Source1" />
-                        <Edge From="6" To="9" Label="Source1" />
-                        <Edge From="7" To="8" Label="Source1" />
-                        <Edge From="9" To="10" Label="Source1" />
-                      </Edges>
-                    </Workflow>
-                  </Expression>
-                  <Expression xsi:type="Combinator">
-                    <Combinator xsi:type="gl:BindTexture">
-                      <gl:TextureSlot>Texture0</gl:TextureSlot>
-                      <gl:ShaderName>Image</gl:ShaderName>
-                      <gl:TextureTarget>Texture2D</gl:TextureTarget>
-                    </Combinator>
-                  </Expression>
-                  <Expression xsi:type="Combinator">
-                    <Combinator xsi:type="rx:SubscribeWhen" />
+                  <Expression xsi:type="IncludeWorkflow" Path="Extensions\DrawStimuli.bonsai">
+                    <Y>0.0697674453</Y>
+                    <X>0</X>
                   </Expression>
                   <Expression xsi:type="GroupWorkflow">
                     <Name>ImageDuration</Name>
@@ -808,7 +622,7 @@ Convert.ToDouble(it.Height) / Convert.ToDouble(it.Width) as aspectRatio
                         </Expression>
                         <Expression xsi:type="Combinator">
                           <Combinator xsi:type="gl:Timer">
-                            <gl:DueTime>PT5S</gl:DueTime>
+                            <gl:DueTime>PT1S</gl:DueTime>
                           </Combinator>
                         </Expression>
                         <Expression xsi:type="Combinator">
@@ -834,19 +648,71 @@ Convert.ToDouble(it.Height) / Convert.ToDouble(it.Width) as aspectRatio
                 </Nodes>
                 <Edges>
                   <Edge From="0" To="1" Label="Source1" />
-                  <Edge From="1" To="2" Label="Source1" />
-                  <Edge From="2" To="5" Label="Source1" />
+                  <Edge From="1" To="3" Label="Source1" />
+                  <Edge From="2" To="3" Label="Source2" />
                   <Edge From="3" To="4" Label="Source1" />
-                  <Edge From="4" To="5" Label="Source2" />
-                  <Edge From="5" To="7" Label="Source1" />
-                  <Edge From="6" To="7" Label="Source2" />
-                  <Edge From="7" To="8" Label="Source1" />
-                  <Edge From="8" To="9" Label="Source1" />
+                  <Edge From="4" To="5" Label="Source1" />
+                </Edges>
+              </Workflow>
+            </Expression>
+            <Expression xsi:type="SelectMany">
+              <Name>Delay</Name>
+              <Workflow>
+                <Nodes>
+                  <Expression xsi:type="SubscribeSubject">
+                    <Name>Delay</Name>
+                  </Expression>
+                  <Expression xsi:type="PropertyMapping">
+                    <PropertyMappings>
+                      <Property Name="DueTime" />
+                    </PropertyMappings>
+                  </Expression>
+                  <Expression xsi:type="Combinator">
+                    <Combinator xsi:type="gl:Timer">
+                      <gl:DueTime>PT1S</gl:DueTime>
+                    </Combinator>
+                  </Expression>
+                  <Expression xsi:type="WorkflowOutput" />
+                </Nodes>
+                <Edges>
+                  <Edge From="0" To="1" Label="Source1" />
+                  <Edge From="1" To="2" Label="Source1" />
+                  <Edge From="2" To="3" Label="Source1" />
                 </Edges>
               </Workflow>
             </Expression>
             <Expression xsi:type="IncludeWorkflow" Path="Extensions\UserResponse.bonsai">
               <Text>How good was the image?</Text>
+            </Expression>
+            <Expression xsi:type="SelectMany">
+              <Name>HalfDelay</Name>
+              <Workflow>
+                <Nodes>
+                  <Expression xsi:type="SubscribeSubject">
+                    <Name>Delay</Name>
+                  </Expression>
+                  <Expression xsi:type="scr:ExpressionTransform">
+                    <scr:Expression>TimeSpan.FromTicks(it.Ticks/2)</scr:Expression>
+                  </Expression>
+                  <Expression xsi:type="PropertyMapping">
+                    <PropertyMappings>
+                      <Property Name="DueTime" />
+                    </PropertyMappings>
+                  </Expression>
+                  <Expression xsi:type="Combinator">
+                    <Combinator xsi:type="gl:Timer">
+                      <gl:DueTime>PT0.5S</gl:DueTime>
+                    </Combinator>
+                  </Expression>
+                  <Expression xsi:type="WorkflowOutput" />
+                </Nodes>
+                <Edges>
+                  <Edge From="0" To="1" Label="Source1" />
+                  <Edge From="1" To="2" Label="Source1" />
+                  <Edge From="2" To="3" Label="Source1" />
+                  <Edge From="3" To="4" Label="Source1" />
+                </Edges>
+              </Workflow>
             </Expression>
             <Expression xsi:type="IncludeWorkflow" Path="Extensions\UserResponse.bonsai">
               <Text>How familiar was the image?</Text>
@@ -865,7 +731,7 @@ Convert.ToDouble(it.Height) / Convert.ToDouble(it.Width) as aspectRatio
                   </Expression>
                   <Expression xsi:type="Combinator">
                     <Combinator xsi:type="gl:Timer">
-                      <gl:DueTime>PT0S</gl:DueTime>
+                      <gl:DueTime>PT2S</gl:DueTime>
                     </Combinator>
                   </Expression>
                   <Expression xsi:type="WorkflowOutput" />
@@ -890,6 +756,8 @@ Convert.ToDouble(it.Height) / Convert.ToDouble(it.Width) as aspectRatio
             <Edge From="4" To="5" Label="Source1" />
             <Edge From="5" To="6" Label="Source1" />
             <Edge From="6" To="7" Label="Source1" />
+            <Edge From="7" To="8" Label="Source1" />
+            <Edge From="8" To="9" Label="Source1" />
           </Edges>
         </Workflow>
       </Expression>
